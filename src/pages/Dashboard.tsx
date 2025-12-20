@@ -1,17 +1,70 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { FolderKanban, CheckCircle2, Clock, Star, RefreshCw, Github } from 'lucide-react';
+import { FolderKanban, CheckCircle2, Clock, Star, RefreshCw, Github, Loader2, Lightbulb } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { ProjectCard } from '@/components/projects/ProjectCard';
 import { Button } from '@/components/ui/button';
-import { mockProjects, calculateStats } from '@/data/mockProjects';
+import { useProjects } from '@/hooks/useProjects';
+import { useAuth } from '@/hooks/useAuth';
+import { syncGitHubRepos } from '@/lib/github';
+import { useToast } from '@/hooks/use-toast';
+import { useQueryClient } from '@tanstack/react-query';
 
 export default function Dashboard() {
-  const stats = calculateStats(mockProjects);
-  const recentProjects = [...mockProjects]
+  const { data: projects = [], isLoading } = useProjects();
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const stats = {
+    total: projects.length,
+    completed: projects.filter(p => p.status === 'completed').length,
+    inProgress: projects.filter(p => p.status === 'in-progress').length,
+    featured: projects.filter(p => p.featured).length,
+    ideas: projects.filter(p => p.status === 'idea').length,
+  };
+
+  const recentProjects = [...projects]
     .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
     .slice(0, 4);
-  const featuredProjects = mockProjects.filter(p => p.featured).slice(0, 2);
+
+  const featuredProjects = projects.filter(p => p.featured).slice(0, 2);
+  const totalStars = projects.reduce((sum, p) => sum + (p.stars || 0), 0);
+  const totalForks = projects.reduce((sum, p) => sum + (p.forks || 0), 0);
+
+  const handleSync = async () => {
+    if (!user) return;
+    
+    setIsSyncing(true);
+    try {
+      const count = await syncGitHubRepos('lewiii254', user.id);
+      toast({
+        title: 'Sync complete!',
+        description: `Imported/updated ${count} repositories from GitHub.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+    } catch (error) {
+      toast({
+        title: 'Sync failed',
+        description: error instanceof Error ? error.message : 'Failed to sync with GitHub',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <Loader2 className="w-8 h-8 text-primary animate-spin" />
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -26,15 +79,23 @@ export default function Dashboard() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h1 className="text-2xl lg:text-3xl font-bold text-foreground mb-1">
-                Welcome back, <span className="gradient-text">Lewis</span> 👋
+                Welcome back, <span className="gradient-text">{user?.user_metadata?.display_name || 'Developer'}</span> 👋
               </h1>
               <p className="text-muted-foreground">
                 Here's an overview of your project portfolio
               </p>
             </div>
-            <Button className="bg-gradient-primary hover:opacity-90 text-primary-foreground gap-2 self-start">
-              <RefreshCw className="w-4 h-4" />
-              Sync from GitHub
+            <Button 
+              className="bg-gradient-primary hover:opacity-90 text-primary-foreground gap-2 self-start"
+              onClick={handleSync}
+              disabled={isSyncing}
+            >
+              {isSyncing ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <RefreshCw className="w-4 h-4" />
+              )}
+              {isSyncing ? 'Syncing...' : 'Sync from GitHub'}
             </Button>
           </div>
         </motion.div>
@@ -71,6 +132,33 @@ export default function Dashboard() {
           />
         </div>
 
+        {/* Empty State */}
+        {projects.length === 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="glass-card p-12 text-center mb-8"
+          >
+            <FolderKanban className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-foreground mb-2">No projects yet</h2>
+            <p className="text-muted-foreground mb-6">
+              Click "Sync from GitHub" to import your repositories, or add a project manually.
+            </p>
+            <Button 
+              className="bg-gradient-primary hover:opacity-90 text-primary-foreground"
+              onClick={handleSync}
+              disabled={isSyncing}
+            >
+              {isSyncing ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Github className="w-4 h-4 mr-2" />
+              )}
+              Import from GitHub
+            </Button>
+          </motion.div>
+        )}
+
         {/* Featured Projects */}
         {featuredProjects.length > 0 && (
           <section className="mb-8">
@@ -94,58 +182,62 @@ export default function Dashboard() {
         )}
 
         {/* Recent Projects */}
-        <section>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5 }}
-            className="flex items-center justify-between mb-4"
-          >
-            <h2 className="text-lg font-semibold text-foreground">Recent Activity</h2>
-            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground" asChild>
-              <a href="/projects">View all →</a>
-            </Button>
-          </motion.div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-4">
-            {recentProjects.map((project, index) => (
-              <ProjectCard key={project.id} project={project} index={index + 2} />
-            ))}
-          </div>
-        </section>
+        {recentProjects.length > 0 && (
+          <section>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5 }}
+              className="flex items-center justify-between mb-4"
+            >
+              <h2 className="text-lg font-semibold text-foreground">Recent Activity</h2>
+              <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground" asChild>
+                <a href="/projects">View all →</a>
+              </Button>
+            </motion.div>
+            <div className="grid md:grid-cols-2 gap-4">
+              {recentProjects.map((project, index) => (
+                <ProjectCard key={project.id} project={project} index={index + 2} />
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* GitHub Stats Banner */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
-          className="mt-8 glass-card p-6 flex flex-col sm:flex-row items-center justify-between gap-4"
-        >
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
-              <Github className="w-6 h-6 text-foreground" />
+        {projects.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+            className="mt-8 glass-card p-6 flex flex-col sm:flex-row items-center justify-between gap-4"
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
+                <Github className="w-6 h-6 text-foreground" />
+              </div>
+              <div>
+                <p className="font-medium text-foreground">GitHub Stats</p>
+                <p className="text-sm text-muted-foreground">@lewiii254</p>
+              </div>
             </div>
-            <div>
-              <p className="font-medium text-foreground">Connected to GitHub</p>
-              <p className="text-sm text-muted-foreground">@lewiii254 • Last synced 2 hours ago</p>
+            <div className="flex items-center gap-3">
+              <div className="text-center px-4">
+                <p className="text-2xl font-bold text-foreground">{stats.total}</p>
+                <p className="text-xs text-muted-foreground">Repos</p>
+              </div>
+              <div className="w-px h-8 bg-border" />
+              <div className="text-center px-4">
+                <p className="text-2xl font-bold text-foreground">{totalStars}</p>
+                <p className="text-xs text-muted-foreground">Stars</p>
+              </div>
+              <div className="w-px h-8 bg-border" />
+              <div className="text-center px-4">
+                <p className="text-2xl font-bold text-foreground">{totalForks}</p>
+                <p className="text-xs text-muted-foreground">Forks</p>
+              </div>
             </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="text-center px-4">
-              <p className="text-2xl font-bold text-foreground">{stats.total}</p>
-              <p className="text-xs text-muted-foreground">Repos</p>
-            </div>
-            <div className="w-px h-8 bg-border" />
-            <div className="text-center px-4">
-              <p className="text-2xl font-bold text-foreground">342</p>
-              <p className="text-xs text-muted-foreground">Stars</p>
-            </div>
-            <div className="w-px h-8 bg-border" />
-            <div className="text-center px-4">
-              <p className="text-2xl font-bold text-foreground">89</p>
-              <p className="text-xs text-muted-foreground">Forks</p>
-            </div>
-          </div>
-        </motion.div>
+          </motion.div>
+        )}
       </div>
     </DashboardLayout>
   );

@@ -1,20 +1,29 @@
 import { motion } from 'framer-motion';
-import { Star } from 'lucide-react';
+import { Star, Loader2 } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { ProjectCard } from '@/components/projects/ProjectCard';
-import { mockProjects } from '@/data/mockProjects';
+import { useProjects } from '@/hooks/useProjects';
 
 export default function Featured() {
-  const featuredProjects = mockProjects.filter((p) => p.featured);
+  const { data: projects = [], isLoading } = useProjects();
+  const featuredProjects = projects.filter((p) => p.featured);
+
+  if (isLoading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <Loader2 className="w-8 h-8 text-primary animate-spin" />
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
       <div className="p-6 lg:p-8 max-w-7xl mx-auto">
-        {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
           className="mb-8"
         >
           <div className="flex items-center gap-3 mb-1">
@@ -26,7 +35,6 @@ export default function Featured() {
           </p>
         </motion.div>
 
-        {/* Projects Grid */}
         {featuredProjects.length > 0 ? (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
             {featuredProjects.map((project, index) => (

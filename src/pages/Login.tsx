@@ -1,33 +1,89 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Code2, Mail, Lock, Loader2, Github, ExternalLink } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Code2, Mail, Lock, Loader2, Github, ExternalLink, User } from 'lucide-react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 
 export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [displayName, setDisplayName] = useState('');
   const navigate = useNavigate();
+  const location = useLocation();
+  const { signIn, signUp } = useAuth();
   const { toast } = useToast();
+
+  const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/dashboard';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
-    // Simulate auth
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    
-    toast({
-      title: isSignUp ? 'Account created!' : 'Welcome back!',
-      description: 'Redirecting to dashboard...',
-    });
-    
-    setTimeout(() => {
-      navigate('/dashboard');
-    }, 500);
+
+    try {
+      if (isSignUp) {
+        if (password !== confirmPassword) {
+          toast({
+            title: 'Passwords do not match',
+            variant: 'destructive',
+          });
+          setIsLoading(false);
+          return;
+        }
+
+        const { error } = await signUp(email, password, displayName);
+        if (error) {
+          if (error.message.includes('already registered')) {
+            toast({
+              title: 'Account already exists',
+              description: 'Please sign in instead.',
+              variant: 'destructive',
+            });
+          } else {
+            toast({
+              title: 'Sign up failed',
+              description: error.message,
+              variant: 'destructive',
+            });
+          }
+          setIsLoading(false);
+          return;
+        }
+
+        toast({
+          title: 'Account created!',
+          description: 'Welcome to DevShowcase!',
+        });
+        navigate(from, { replace: true });
+      } else {
+        const { error } = await signIn(email, password);
+        if (error) {
+          toast({
+            title: 'Sign in failed',
+            description: error.message,
+            variant: 'destructive',
+          });
+          setIsLoading(false);
+          return;
+        }
+
+        toast({
+          title: 'Welcome back!',
+        });
+        navigate(from, { replace: true });
+      }
+    } catch (err) {
+      toast({
+        title: 'An error occurred',
+        variant: 'destructive',
+      });
+    }
     
     setIsLoading(false);
   };
@@ -65,6 +121,27 @@ export default function Login() {
         {/* Form Card */}
         <div className="glass-card p-8">
           <form onSubmit={handleSubmit} className="space-y-4">
+            {isSignUp && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                className="space-y-2"
+              >
+                <Label htmlFor="displayName">Display Name</Label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    id="displayName"
+                    type="text"
+                    placeholder="Lewis"
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    className="pl-10 input-search"
+                  />
+                </div>
+              </motion.div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <div className="relative">
@@ -73,6 +150,8 @@ export default function Login() {
                   id="email"
                   type="email"
                   placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   className="pl-10 input-search"
                   required
                 />
@@ -87,8 +166,11 @@ export default function Login() {
                   id="password"
                   type="password"
                   placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   className="pl-10 input-search"
                   required
+                  minLength={6}
                 />
               </div>
             </div>
@@ -97,7 +179,6 @@ export default function Login() {
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
                 className="space-y-2"
               >
                 <Label htmlFor="confirmPassword">Confirm Password</Label>
@@ -107,8 +188,11 @@ export default function Login() {
                     id="confirmPassword"
                     type="password"
                     placeholder="••••••••"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
                     className="pl-10 input-search"
                     required
+                    minLength={6}
                   />
                 </div>
               </motion.div>
@@ -130,22 +214,15 @@ export default function Login() {
             </Button>
           </form>
 
-          <div className="flex items-center gap-4 my-6">
-            <div className="flex-1 h-px bg-border" />
-            <span className="text-sm text-muted-foreground">or continue with</span>
-            <div className="flex-1 h-px bg-border" />
-          </div>
-
-          <Button variant="secondary" className="w-full" disabled={isLoading}>
-            <Github className="w-4 h-4 mr-2" />
-            GitHub
-          </Button>
-
           <p className="text-center text-sm text-muted-foreground mt-6">
             {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
             <button
               type="button"
-              onClick={() => setIsSignUp(!isSignUp)}
+              onClick={() => {
+                setIsSignUp(!isSignUp);
+                setPassword('');
+                setConfirmPassword('');
+              }}
               className="text-primary hover:underline font-medium"
             >
               {isSignUp ? 'Sign in' : 'Sign up'}
@@ -155,15 +232,9 @@ export default function Login() {
 
         {/* Footer */}
         <p className="text-center text-sm text-muted-foreground mt-6">
-          <a
-            href="https://github.com/lewiii254"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
-          >
-            Built by @lewiii254
-            <ExternalLink className="w-3 h-3" />
-          </a>
+          <Link to="/portfolio" className="hover:text-foreground transition-colors">
+            ← Back to Portfolio
+          </Link>
         </p>
       </motion.div>
     </div>

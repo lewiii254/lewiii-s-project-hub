@@ -1,19 +1,20 @@
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
+import { Loader2 } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { ProjectCard } from '@/components/projects/ProjectCard';
 import { ProjectFilters } from '@/components/projects/ProjectFilters';
-import { mockProjects } from '@/data/mockProjects';
-import { ProjectStatus, ProjectCategory } from '@/types/project';
+import { useProjects, ProjectStatus, ProjectCategory } from '@/hooks/useProjects';
 
 export default function Projects() {
+  const { data: projects = [], isLoading } = useProjects();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<ProjectStatus | 'all'>('all');
   const [categoryFilter, setCategoryFilter] = useState<ProjectCategory | 'all'>('all');
   const [sortBy, setSortBy] = useState<'updated' | 'created' | 'name' | 'stars'>('updated');
 
   const filteredProjects = useMemo(() => {
-    let filtered = [...mockProjects];
+    let filtered = [...projects];
 
     // Search filter
     if (search) {
@@ -21,8 +22,8 @@ export default function Projects() {
       filtered = filtered.filter(
         (p) =>
           p.title.toLowerCase().includes(searchLower) ||
-          p.description.toLowerCase().includes(searchLower) ||
-          p.tech_stack.some((t) => t.toLowerCase().includes(searchLower))
+          (p.description?.toLowerCase().includes(searchLower)) ||
+          p.tech_stack?.some((t) => t.toLowerCase().includes(searchLower))
       );
     }
 
@@ -53,7 +54,17 @@ export default function Projects() {
     }
 
     return filtered;
-  }, [search, statusFilter, categoryFilter, sortBy]);
+  }, [projects, search, statusFilter, categoryFilter, sortBy]);
+
+  if (isLoading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <Loader2 className="w-8 h-8 text-primary animate-spin" />
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -89,7 +100,7 @@ export default function Projects() {
           animate={{ opacity: 1 }}
           className="text-sm text-muted-foreground mb-4"
         >
-          Showing {filteredProjects.length} of {mockProjects.length} projects
+          Showing {filteredProjects.length} of {projects.length} projects
         </motion.p>
 
         {/* Projects Grid */}

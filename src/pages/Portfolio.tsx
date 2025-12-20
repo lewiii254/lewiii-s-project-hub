@@ -1,8 +1,8 @@
 import { motion } from 'framer-motion';
-import { ExternalLink, Github, Star, Code2, Mail, ChevronRight } from 'lucide-react';
+import { ExternalLink, Github, Star, Code2, Mail, ChevronRight, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { mockProjects } from '@/data/mockProjects';
+import { useFeaturedProjects } from '@/hooks/useProjects';
 
 const statusLabels = {
   'idea': 'Idea',
@@ -11,7 +11,7 @@ const statusLabels = {
 };
 
 export default function Portfolio() {
-  const featuredProjects = mockProjects.filter((p) => p.featured);
+  const { data: featuredProjects = [], isLoading } = useFeaturedProjects();
 
   return (
     <div className="min-h-screen bg-background">
@@ -91,7 +91,7 @@ export default function Portfolio() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
             >
-              <p className="text-3xl font-bold text-foreground">{mockProjects.length}</p>
+              <p className="text-3xl font-bold text-foreground">{isLoading ? '0' : featuredProjects.length}</p>
               <p className="text-muted-foreground">Projects</p>
             </motion.div>
             <motion.div
@@ -139,51 +139,63 @@ export default function Portfolio() {
             </div>
           </motion.div>
 
-          <div className="grid md:grid-cols-2 gap-6">
-            {featuredProjects.map((project, index) => (
-              <motion.div
-                key={project.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.6 + index * 0.1 }}
-                className="glass-card-hover p-6"
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="text-lg font-semibold text-foreground">{project.title}</h3>
-                      <Star className="w-4 h-4 text-status-progress fill-status-progress" />
+          {isLoading ? (
+            <div className="flex items-center justify-center min-h-[200px]">
+              <Loader2 className="w-8 h-8 text-primary animate-spin" />
+            </div>
+          ) : featuredProjects.length === 0 ? (
+            <div className="glass-card p-12 text-center">
+              <p className="text-muted-foreground">No featured projects yet. Check back soon!</p>
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 gap-6">
+              {featuredProjects.map((project, index) => (
+                <motion.div
+                  key={project.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.6 + index * 0.1 }}
+                  className="glass-card-hover p-6"
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="text-lg font-semibold text-foreground">{project.title}</h3>
+                        <Star className="w-4 h-4 text-status-progress fill-status-progress" />
+                      </div>
+                      <span className={`status-badge status-${project.status === 'in-progress' ? 'progress' : project.status}`}>
+                        {statusLabels[project.status]}
+                      </span>
                     </div>
-                    <span className={`status-badge status-${project.status === 'in-progress' ? 'progress' : project.status}`}>
-                      {statusLabels[project.status]}
-                    </span>
                   </div>
-                </div>
-                <p className="text-muted-foreground mb-4 line-clamp-2">{project.description}</p>
-                <div className="flex flex-wrap gap-1.5 mb-4">
-                  {project.tech_stack.slice(0, 5).map((tech) => (
-                    <span key={tech} className="tech-badge">{tech}</span>
-                  ))}
-                </div>
-                <div className="flex items-center gap-3 pt-4 border-t border-border/50">
-                  {project.live_url && (
-                    <Button size="sm" className="bg-gradient-primary hover:opacity-90 text-primary-foreground" asChild>
-                      <a href={project.live_url} target="_blank" rel="noopener noreferrer">
-                        <ExternalLink className="w-4 h-4 mr-1.5" />
-                        Live Demo
-                      </a>
-                    </Button>
-                  )}
-                  <Button size="sm" variant="secondary" asChild>
-                    <a href={project.github_url} target="_blank" rel="noopener noreferrer">
-                      <Github className="w-4 h-4 mr-1.5" />
-                      View Code
-                    </a>
-                  </Button>
-                </div>
-              </motion.div>
-            ))}
-          </div>
+                  <p className="text-muted-foreground mb-4 line-clamp-2">{project.description}</p>
+                  <div className="flex flex-wrap gap-1.5 mb-4">
+                    {project.tech_stack.slice(0, 5).map((tech) => (
+                      <span key={tech} className="tech-badge">{tech}</span>
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-3 pt-4 border-t border-border/50">
+                    {project.live_url && (
+                      <Button size="sm" className="bg-gradient-primary hover:opacity-90 text-primary-foreground" asChild>
+                        <a href={project.live_url} target="_blank" rel="noopener noreferrer">
+                          <ExternalLink className="w-4 h-4 mr-1.5" />
+                          Live Demo
+                        </a>
+                      </Button>
+                    )}
+                    {project.github_url && (
+                      <Button size="sm" variant="secondary" asChild>
+                        <a href={project.github_url} target="_blank" rel="noopener noreferrer">
+                          <Github className="w-4 h-4 mr-1.5" />
+                          View Code
+                        </a>
+                      </Button>
+                    )}
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 

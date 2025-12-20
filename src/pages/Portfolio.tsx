@@ -91,7 +91,7 @@ export default function Portfolio() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
             >
-              <p className="text-3xl font-bold text-foreground">{isLoading ? '...' : featuredProjects.length}</p>
+              <p className="text-3xl font-bold text-foreground">{isLoading ? '0' : featuredProjects.length}</p>
               <p className="text-muted-foreground">Projects</p>
             </motion.div>
             <motion.div

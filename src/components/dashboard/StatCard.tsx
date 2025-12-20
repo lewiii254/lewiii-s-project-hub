@@ -26,16 +26,16 @@ export function StatCard({ title, value, icon: Icon, color, delay = 0 }: StatCar
       className="stat-card group hover:border-primary/30 transition-all duration-300"
     >
       <div className="flex items-center justify-between">
-        <span className="text-sm text-muted-foreground">{title}</span>
-        <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center', colorClasses[color])}>
-          <Icon className="w-5 h-5" />
+        <span className="text-xs sm:text-sm text-muted-foreground">{title}</span>
+        <div className={cn('w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center', colorClasses[color])}>
+          <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
         </div>
       </div>
       <motion.div
         initial={{ scale: 0.5 }}
         animate={{ scale: 1 }}
         transition={{ duration: 0.3, delay: delay + 0.1, type: 'spring' }}
-        className="text-3xl font-bold text-foreground"
+        className="text-2xl sm:text-3xl font-bold text-foreground"
       >
         {value}
       </motion.div>

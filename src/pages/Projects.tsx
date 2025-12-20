@@ -68,16 +68,16 @@ export default function Projects() {
 
   return (
     <DashboardLayout>
-      <div className="p-6 lg:p-8 max-w-7xl mx-auto">
+      <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
-          className="mb-6"
+          className="mb-4 sm:mb-6"
         >
-          <h1 className="text-2xl lg:text-3xl font-bold text-foreground mb-1">Projects</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground mb-1">Projects</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">
             Browse and manage all your projects in one place
           </p>
         </motion.div>
@@ -98,14 +98,14 @@ export default function Projects() {
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="text-sm text-muted-foreground mb-4"
+          className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4"
         >
           Showing {filteredProjects.length} of {projects.length} projects
         </motion.p>
 
         {/* Projects Grid */}
         {filteredProjects.length > 0 ? (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-3">
             {filteredProjects.map((project, index) => (
               <ProjectCard key={project.id} project={project} index={index} />
             ))}
@@ -114,9 +114,9 @@ export default function Projects() {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="glass-card p-12 text-center"
+            className="glass-card p-8 sm:p-12 text-center"
           >
-            <p className="text-muted-foreground">No projects found matching your criteria.</p>
+            <p className="text-sm sm:text-base text-muted-foreground">No projects found matching your criteria.</p>
           </motion.div>
         )}
       </div>

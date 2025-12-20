@@ -31,22 +31,22 @@ export function ProjectFilters({
   onSortChange,
 }: ProjectFiltersProps) {
   return (
-    <div className="flex flex-col lg:flex-row gap-4 mb-6">
+    <div className="flex flex-col gap-3 sm:gap-4 mb-4 sm:mb-6">
       {/* Search */}
-      <div className="relative flex-1 max-w-md">
+      <div className="relative w-full">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <Input
           placeholder="Search projects..."
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="pl-10 input-search"
+          className="pl-10 input-search min-h-[44px] sm:min-h-0"
         />
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3">
+      <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 sm:gap-3">
         <Select value={statusFilter} onValueChange={(v) => onStatusChange(v as ProjectStatus | 'all')}>
-          <SelectTrigger className="w-[140px] bg-muted/50 border-border/50">
+          <SelectTrigger className="bg-muted/50 border-border/50 min-h-[44px] sm:min-h-0 sm:w-[140px]">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
@@ -58,7 +58,7 @@ export function ProjectFilters({
         </Select>
 
         <Select value={categoryFilter} onValueChange={(v) => onCategoryChange(v as ProjectCategory | 'all')}>
-          <SelectTrigger className="w-[150px] bg-muted/50 border-border/50">
+          <SelectTrigger className="bg-muted/50 border-border/50 min-h-[44px] sm:min-h-0 sm:w-[150px]">
             <SelectValue placeholder="Category" />
           </SelectTrigger>
           <SelectContent>
@@ -71,7 +71,7 @@ export function ProjectFilters({
         </Select>
 
         <Select value={sortBy} onValueChange={(v) => onSortChange(v as typeof sortBy)}>
-          <SelectTrigger className="w-[160px] bg-muted/50 border-border/50">
+          <SelectTrigger className="bg-muted/50 border-border/50 min-h-[44px] sm:min-h-0 col-span-2 sm:col-span-1 sm:w-[160px]">
             <SlidersHorizontal className="w-4 h-4 mr-2" />
             <SelectValue placeholder="Sort by" />
           </SelectTrigger>

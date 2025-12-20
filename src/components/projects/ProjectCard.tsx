@@ -1,9 +1,9 @@
 import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
 import { ExternalLink, Github, Star, GitFork, Edit2 } from 'lucide-react';
-import { Project } from '@/types/project';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import type { Project } from '@/hooks/useProjects';
 
 interface ProjectCardProps {
   project: Project;
@@ -35,7 +35,9 @@ export function ProjectCard({ project, index }: ProjectCardProps) {
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <h3 className="font-semibold text-foreground truncate">{project.title}</h3>
+            <Link to={`/projects/${project.id}`} className="hover:text-primary transition-colors">
+              <h3 className="font-semibold text-foreground truncate">{project.title}</h3>
+            </Link>
             {project.featured && (
               <Star className="w-4 h-4 text-status-progress fill-status-progress flex-shrink-0" />
             )}
@@ -53,31 +55,31 @@ export function ProjectCard({ project, index }: ProjectCardProps) {
 
       {/* Description */}
       <p className="text-sm text-muted-foreground line-clamp-2 mb-4 flex-grow">
-        {project.description}
+        {project.description || 'No description'}
       </p>
 
       {/* Tech Stack */}
       <div className="flex flex-wrap gap-1.5 mb-4">
-        {project.tech_stack.slice(0, 4).map((tech) => (
+        {project.tech_stack?.slice(0, 4).map((tech) => (
           <span key={tech} className="tech-badge">
             {tech}
           </span>
         ))}
-        {project.tech_stack.length > 4 && (
+        {project.tech_stack && project.tech_stack.length > 4 && (
           <span className="tech-badge">+{project.tech_stack.length - 4}</span>
         )}
       </div>
 
       {/* Stats */}
-      {(project.stars !== undefined || project.forks !== undefined) && (
+      {(project.stars !== null || project.forks !== null) && (
         <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
-          {project.stars !== undefined && (
+          {project.stars !== null && (
             <div className="flex items-center gap-1">
               <Star className="w-4 h-4" />
               <span>{project.stars}</span>
             </div>
           )}
-          {project.forks !== undefined && (
+          {project.forks !== null && (
             <div className="flex items-center gap-1">
               <GitFork className="w-4 h-4" />
               <span>{project.forks}</span>
@@ -107,19 +109,23 @@ export function ProjectCard({ project, index }: ProjectCardProps) {
             </a>
           </Button>
         )}
-        <Button
-          variant="secondary"
-          size="sm"
-          className={cn(!project.live_url && 'flex-1')}
-          asChild
-        >
-          <a href={project.github_url} target="_blank" rel="noopener noreferrer">
-            <Github className="w-4 h-4 mr-1.5" />
-            GitHub
-          </a>
-        </Button>
-        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
-          <Edit2 className="w-4 h-4" />
+        {project.github_url && (
+          <Button
+            variant="secondary"
+            size="sm"
+            className={cn(!project.live_url && 'flex-1')}
+            asChild
+          >
+            <a href={project.github_url} target="_blank" rel="noopener noreferrer">
+              <Github className="w-4 h-4 mr-1.5" />
+              GitHub
+            </a>
+          </Button>
+        )}
+        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" asChild>
+          <Link to={`/projects/${project.id}`}>
+            <Edit2 className="w-4 h-4" />
+          </Link>
         </Button>
       </div>
     </motion.div>

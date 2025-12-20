@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Github, ArrowLeft, Plus, Loader2 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,38 +15,46 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { useToast } from '@/hooks/use-toast';
+import { useCreateProject } from '@/hooks/useProjects';
 
 export default function NewProject() {
-  const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
+  const createProject = useCreateProject();
   const [techInput, setTechInput] = useState('');
-  const [techStack, setTechStack] = useState<string[]>([]);
-  const { toast } = useToast();
+  const [form, setForm] = useState({
+    title: '',
+    description: '',
+    github_url: '',
+    live_url: '',
+    status: 'in-progress' as 'idea' | 'in-progress' | 'completed',
+    category: 'practice' as 'practice' | 'school' | 'startup' | 'opensource',
+    tech_stack: [] as string[],
+    featured: false,
+  });
 
   const handleAddTech = () => {
-    if (techInput.trim() && !techStack.includes(techInput.trim())) {
-      setTechStack([...techStack, techInput.trim()]);
+    if (techInput.trim() && !form.tech_stack.includes(techInput.trim())) {
+      setForm({ ...form, tech_stack: [...form.tech_stack, techInput.trim()] });
       setTechInput('');
     }
   };
 
   const handleRemoveTech = (tech: string) => {
-    setTechStack(techStack.filter((t) => t !== tech));
+    setForm({ ...form, tech_stack: form.tech_stack.filter((t) => t !== tech) });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    
-    toast({
-      title: 'Project created!',
-      description: 'Your project has been added successfully.',
+    await createProject.mutateAsync({
+      ...form,
+      stars: null,
+      forks: null,
+      language: null,
+      github_repo_id: null,
     });
     
-    setIsLoading(false);
+    navigate('/projects');
   };
 
   return (
@@ -76,46 +84,15 @@ export default function NewProject() {
         >
           <h1 className="text-2xl lg:text-3xl font-bold text-foreground mb-1">Add New Project</h1>
           <p className="text-muted-foreground">
-            Import from GitHub or manually add a new project
+            Add a new project to your portfolio manually
           </p>
         </motion.div>
-
-        {/* Import from GitHub */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="glass-card p-6 mb-6"
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
-                <Github className="w-5 h-5 text-foreground" />
-              </div>
-              <div>
-                <p className="font-medium text-foreground">Import from GitHub</p>
-                <p className="text-sm text-muted-foreground">
-                  Automatically fetch repository details
-                </p>
-              </div>
-            </div>
-            <Button variant="secondary">
-              Select Repository
-            </Button>
-          </div>
-        </motion.div>
-
-        <div className="flex items-center gap-4 mb-6">
-          <div className="flex-1 h-px bg-border" />
-          <span className="text-sm text-muted-foreground">or add manually</span>
-          <div className="flex-1 h-px bg-border" />
-        </div>
 
         {/* Manual Form */}
         <motion.form
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
+          transition={{ delay: 0.1 }}
           onSubmit={handleSubmit}
           className="glass-card p-6 space-y-6"
         >
@@ -124,6 +101,8 @@ export default function NewProject() {
             <Label htmlFor="title">Project Title *</Label>
             <Input
               id="title"
+              value={form.title}
+              onChange={(e) => setForm({ ...form, title: e.target.value })}
               placeholder="My Awesome Project"
               className="input-search"
               required
@@ -132,25 +111,27 @@ export default function NewProject() {
 
           {/* Description */}
           <div className="space-y-2">
-            <Label htmlFor="description">Description *</Label>
+            <Label htmlFor="description">Description</Label>
             <Textarea
               id="description"
+              value={form.description}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
               placeholder="A brief description of your project..."
               className="input-search min-h-[100px]"
-              required
             />
           </div>
 
           {/* URLs */}
           <div className="grid md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="github_url">GitHub URL *</Label>
+              <Label htmlFor="github_url">GitHub URL</Label>
               <Input
                 id="github_url"
                 type="url"
+                value={form.github_url}
+                onChange={(e) => setForm({ ...form, github_url: e.target.value })}
                 placeholder="https://github.com/..."
                 className="input-search"
-                required
               />
             </div>
             <div className="space-y-2">
@@ -158,6 +139,8 @@ export default function NewProject() {
               <Input
                 id="live_url"
                 type="url"
+                value={form.live_url}
+                onChange={(e) => setForm({ ...form, live_url: e.target.value })}
                 placeholder="https://your-demo.vercel.app"
                 className="input-search"
               />
@@ -168,7 +151,10 @@ export default function NewProject() {
           <div className="grid md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Status *</Label>
-              <Select defaultValue="in-progress">
+              <Select 
+                value={form.status} 
+                onValueChange={(v) => setForm({ ...form, status: v as typeof form.status })}
+              >
                 <SelectTrigger className="bg-muted/50 border-border/50">
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
@@ -181,7 +167,10 @@ export default function NewProject() {
             </div>
             <div className="space-y-2">
               <Label>Category *</Label>
-              <Select defaultValue="practice">
+              <Select 
+                value={form.category} 
+                onValueChange={(v) => setForm({ ...form, category: v as typeof form.category })}
+              >
                 <SelectTrigger className="bg-muted/50 border-border/50">
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
@@ -215,9 +204,9 @@ export default function NewProject() {
                 <Plus className="w-4 h-4" />
               </Button>
             </div>
-            {techStack.length > 0 && (
+            {form.tech_stack.length > 0 && (
               <div className="flex flex-wrap gap-2 mt-3">
-                {techStack.map((tech) => (
+                {form.tech_stack.map((tech) => (
                   <span
                     key={tech}
                     className="tech-badge cursor-pointer hover:bg-destructive/20 hover:text-destructive transition-colors"
@@ -238,16 +227,20 @@ export default function NewProject() {
                 Show this project on your public portfolio
               </p>
             </div>
-            <Switch id="featured" />
+            <Switch 
+              id="featured" 
+              checked={form.featured}
+              onCheckedChange={(checked) => setForm({ ...form, featured: checked })}
+            />
           </div>
 
           {/* Submit */}
           <Button
             type="submit"
             className="w-full bg-gradient-primary hover:opacity-90 text-primary-foreground"
-            disabled={isLoading}
+            disabled={createProject.isPending}
           >
-            {isLoading ? (
+            {createProject.isPending ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 Creating...
